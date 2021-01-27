@@ -1,4 +1,5 @@
 process.env.NODE_ENV='production';
+const heapdump = require('heapdump')
 
 const vueServerRenderer = require('@vue/server-renderer');
 const bundle = require('./bundle_success').default;
@@ -11,6 +12,10 @@ const loop = async () => {
     const startMem = Math.round((process.memoryUsage().rss / 1048576) * 100) / 100;
     console.log("start memory", startMem, 'MB')
 
+    await vueServerRenderer.renderToString(bundle({}), {})
+
+    heapdump.writeSnapshot('./' + 'healthy.start' + '.heapsnapshot')
+
     for (let i = 0; i < 10000; i++) {
         await vueServerRenderer.renderToString(bundle({}), {});
     }
@@ -21,8 +26,17 @@ const loop = async () => {
     console.log("sleep");
     await sleep(20000);
 
+    gc()
+
     const endMemCleaned = Math.round((process.memoryUsage().rss / 1048576) * 100) / 100;
     console.log("ending memory", endMemCleaned, 'MB');
 }
 
-loop();
+async function run() {
+    await loop()
+
+    heapdump.writeSnapshot('./' + 'healthy.end' + '.heapsnapshot')
+}
+
+
+run()
